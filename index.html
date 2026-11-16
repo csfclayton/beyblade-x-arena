@@ -1,1 +1,24 @@
-PLACEHOLDER
+<!DOCTYPE html>
+<html lang="zh-TW"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Loading BEYBLADE X...</title>
+<style>body{background:#05070e;color:#00ff9d;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}</style>
+</head><body><div id="s">Loading BEYBLADE X Arena...</div>
+<script>
+async function main(){
+  const n = 16;
+  const parts = [];
+  for (let i = 1; i <= n; i++) {
+    const id = String(i).padStart(2,'0');
+    document.getElementById('s').textContent = 'Loading ' + i + '/' + n + '...';
+    const res = await fetch('chunks/chunk_' + id + '.b64?t=' + Date.now());
+    if (!res.ok) throw new Error('chunk ' + id + ' HTTP ' + res.status);
+    parts.push(await res.text());
+  }
+  const b64 = parts.join('').replace(/\s/g,'');
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+  const html = new TextDecoder('utf-8').decode(bytes);
+  document.open(); document.write(html); document.close();
+}
+main().catch(e=>{ document.getElementById('s').textContent = 'Load failed: '+e; console.error(e); });
+</script></body></html>
