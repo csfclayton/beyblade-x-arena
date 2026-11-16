@@ -2052,11 +2052,26 @@ const DEFAULT_BEYS = {
       updateAttr();
     }
 
+    function getStatMaxima() {
+      let maxAtk = 1, maxDef = 1, maxSta = 1, maxSpd = 1;
+      for (const key in BEY_DATA) {
+        const s = BEY_DATA[key] && BEY_DATA[key].stats;
+        if (!s) continue;
+        if (s.attack > maxAtk) maxAtk = s.attack;
+        if (s.defense > maxDef) maxDef = s.defense;
+        if (s.stamina > maxSta) maxSta = s.stamina;
+        if (s.speed > maxSpd) maxSpd = s.speed;
+      }
+      return { maxAtk, maxDef, maxSta, maxSpd };
+    }
+
     function renderStatBarsHtml(stats) {
-      const atkPct = Math.min(100, (stats.attack / 160) * 100);
-      const defPct = Math.min(100, (stats.defense / 160) * 100);
-      const staPct = Math.min(100, (stats.stamina / 160) * 100);
-      const spdPct = Math.min(100, (stats.speed / 100) * 100);
+      const { maxAtk, maxDef, maxSta, maxSpd } = getStatMaxima();
+      const pct = (v, max) => Math.max(0, Math.min(100, (Number(v) || 0) / max * 100));
+      const atkPct = pct(stats.attack, maxAtk);
+      const defPct = pct(stats.defense, maxDef);
+      const staPct = pct(stats.stamina, maxSta);
+      const spdPct = pct(stats.speed, maxSpd);
       return `
         <div class="stat-row">
           <div class="stat-label-row"><span>攻擊 ATK</span><span>${stats.attack}</span></div>
