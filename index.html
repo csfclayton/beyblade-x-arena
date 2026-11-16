@@ -1,24 +1,58 @@
 <!DOCTYPE html>
-<html lang="zh-TW"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Loading BEYBLADE X...</title>
-<style>body{background:#05070e;color:#00ff9d;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}</style>
-</head><body><div id="s">Loading BEYBLADE X Arena...</div>
-<script>
-async function main(){
-  const n = 16;
-  const parts = [];
-  for (let i = 1; i <= n; i++) {
-    const id = String(i).padStart(2,'0');
-    document.getElementById('s').textContent = 'Loading ' + i + '/' + n + '...';
-    const res = await fetch('chunks/chunk_' + id + '.b64?t=' + Date.now());
-    if (!res.ok) throw new Error('chunk ' + id + ' HTTP ' + res.status);
-    parts.push(await res.text());
-  }
-  const b64 = parts.join('').replace(/\s/g,'');
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
-  const html = new TextDecoder('utf-8').decode(bytes);
-  document.open(); document.write(html); document.close();
-}
-main().catch(e=>{ document.getElementById('s').textContent = 'Load failed: '+e; console.error(e); });
-</script></body></html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BEYBLADE X // Pro Arena</title>
+  <style>
+    :root { --bg:#05070e; --neon:#00ff9d; --cyan:#00d4ff; --text:#e8eefc; --muted:#7c8ba8; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      font-family: system-ui, "Segoe UI", "Microsoft JhengHei", sans-serif;
+      color: var(--text);
+      background: radial-gradient(ellipse at 50% 0%, #12182a 0%, var(--bg) 60%);
+      padding: 24px;
+    }
+    .card {
+      width: 100%; max-width: 640px; background: rgba(12,18,32,.92);
+      border: 1px solid rgba(0,212,255,.28); border-radius: 16px; padding: 28px 24px;
+      box-shadow: 0 0 40px rgba(0,255,157,.08);
+    }
+    h1 {
+      margin: 0 0 8px; font-size: clamp(28px, 6vw, 40px); letter-spacing: 2px;
+      background: linear-gradient(90deg, var(--neon), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .badge {
+      display: inline-block; font-size: 12px; letter-spacing: 2px; color: var(--cyan);
+      border: 1px solid var(--cyan); padding: 4px 10px; margin-bottom: 14px;
+    }
+    p { color: var(--muted); line-height: 1.7; }
+    code { color: var(--neon); }
+    ol { color: var(--text); line-height: 1.8; padding-left: 20px; }
+    a.btn {
+      display: inline-block; margin-top: 8px; margin-right: 8px; padding: 12px 18px;
+      background: linear-gradient(90deg, var(--neon), var(--cyan)); color: #041018;
+      text-decoration: none; font-weight: 800; border-radius: 8px;
+    }
+    a.link { color: var(--cyan); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">XTREME GEAR SPORTS // SIMULATOR</div>
+    <h1>BEYBLADE X</h1>
+    <p>Pro Battle Arena 已建立 GitHub 倉庫。<br/>因完整遊戲檔約 450KB（含 1000+ 陀螺資料），請用以下方式完成上線：</p>
+    <ol>
+      <li>開啟倉庫：<a class="link" href="https://github.com/csfclayton/beyblade-x-arena" target="_blank" rel="noopener">csfclayton/beyblade-x-arena</a></li>
+      <li>點 <b>Add file → Upload files</b></li>
+      <li>上傳遊戲的 <code>index.html</code>（覆蓋現有檔）</li>
+      <li>Settings → Pages → Source 選 <b>Deploy from a branch</b> → Branch: <b>main</b> / root</li>
+      <li>數分鐘後開啟：<a class="link" href="https://csfclayton.github.io/beyblade-x-arena/">csfclayton.github.io/beyblade-x-arena</a></li>
+    </ol>
+    <p>圖片請與 HTML 放同一資料夾，檔名對應名稱括號內代號，例如 <code>(BL-EVE-077428-01)</code> → <code>BL-EVE-077428-01.png</code></p>
+    <a class="btn" href="https://github.com/csfclayton/beyblade-x-arena" target="_blank" rel="noopener">開啟 GitHub 倉庫</a>
+  </div>
+</body>
+</html>
