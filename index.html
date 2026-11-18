@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>BEYBLADE X // PRO ARENA v5.4</title>
+  <title>BEYBLADE X // PRO ARENA v5.6</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&family=Orbitron:wght@600;800;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
@@ -272,6 +272,18 @@
     }
     .bey-select:focus { border-color: var(--neon-green); }
 
+    /* 挑戰塔隱藏編輯功能；僅編輯模式顯示 */
+    .edit-only { display: none !important; }
+    body.edit-mode-on .edit-only { display: inline-flex !important; }
+    body.edit-mode-on label.edit-only { display: inline-flex !important; }
+    body.edit-mode-on .card-actions.edit-only { display: flex !important; }
+
+    .bey-select option[data-beaten="1"] {
+      color: #ff2a55 !important;
+      font-weight: 700;
+      text-decoration: line-through;
+    }
+
     /* 陀螺縮圖與類型標籤 */
     .bey-showcase {
       display: flex;
@@ -282,6 +294,7 @@
       border: 1px solid rgba(255,255,255,0.06);
     }
     .bey-avatar {
+      cursor: pointer;
       width: 54px;
       height: 54px;
       border-radius: 50%;
@@ -296,6 +309,56 @@
     }
     .bey-avatar img { width: 100%; height: 100%; object-fit: cover; }
     .bey-avatar span { font-family: var(--font-display); font-weight: 900; font-size: 13px; color: #fff; }
+
+    #hdPreviewOverlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 900;
+      background: rgba(0,0,0,0.82);
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(6px);
+      padding: 20px;
+    }
+    #hdPreviewOverlay.open { display: flex; }
+    .hd-preview-box {
+      position: relative;
+      max-width: min(92vw, 520px);
+      max-height: 90vh;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 16px;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(0, 212, 255, 0.25);
+    }
+    .hd-preview-box img {
+      max-width: 100%;
+      max-height: 70vh;
+      object-fit: contain;
+      border-radius: 8px;
+      background: #0a0e18;
+    }
+    #hdPreviewName {
+      margin-top: 12px;
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--neon-cyan);
+      letter-spacing: 1px;
+    }
+    .hd-close {
+      position: absolute; top: 6px; right: 10px;
+      background: transparent; border: none;
+      color: #fff; font-size: 28px; cursor: pointer;
+      line-height: 1;
+    }
+    .bey-avatar {
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .bey-avatar:hover {
+      transform: scale(1.06);
+      box-shadow: 0 0 18px rgba(0, 212, 255, 0.45);
+    }
+
 
     .type-tag {
       display: inline-block;
@@ -806,7 +869,7 @@
   <div id="titleScreen">
     <div class="title-badge">XTREME GEAR SPORTS // SIMULATOR</div>
     <h1 class="title-logo">BEYBLADE X</h1>
-    <p class="title-sub">PRO BATTLE ARENA v5.4</p>
+    <p class="title-sub">PRO BATTLE ARENA v5.6</p>
     <button class="btn-start-main" onclick="enterArena()">ENTER ARENA</button>
   </div>
 
@@ -814,7 +877,7 @@
   <div id="appContainer">
     <header class="top-bar">
       <div class="brand-title">
-        BEYBLADE X <span class="brand-ver">PRO v5.4</span>
+        BEYBLADE X <span class="brand-ver">PRO v5.6</span>
       </div>
       <div id="arenaBar">
         <button class="arena-btn active" data-arena="classic">經典 X 場</button>
@@ -823,14 +886,20 @@
         <button class="arena-btn" data-arena="ice">零摩擦冰場</button>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-        <button class="btn-cyber" onclick="exportBeyCSV()" title="匯出全部陀螺 CSV">匯出 CSV</button>
-        <label class="btn-cyber" style="cursor:pointer;margin:0;" title="匯入 CSV（會清空舊資料）">
+        <button type="button" id="exportCsvBtn" class="btn-cyber edit-only" onclick="exportBeyCSV()" title="匯出全部陀螺 CSV" hidden>匯出 CSV</button>
+        <label id="importCsvLabel" class="btn-cyber edit-only" style="cursor:pointer;margin:0;" title="匯入 CSV（會清空舊資料）" hidden>
           匯入 CSV
           <input type="file" id="importCSV" accept=".csv,text/csv,text/plain" style="display:none;">
         </label>
-        <button class="btn-cyber" onclick="resetBeyDefaults()" title="清除自訂並還原內建陀螺">還原預設</button>
+        <button class="btn-cyber edit-only" onclick="resetBeyDefaults()" title="清除自訂並還原內建陀螺">還原預設</button>
+        <button class="btn-cyber edit-only" onclick="resetTowerProgress()" title="清空挑戰塔擊破進度">重置挑戰塔進度</button>
+        <button class="btn-cyber" id="editModeBtn" onclick="toggleEditMode()" title="輸入密碼進入編輯模式">編輯模式</button>
       </div>
+      <script>/* hide-csv-tower */(function(){var e=document.getElementById("exportCsvBtn");if(e){e.hidden=true;e.style.display="none";}var i=document.getElementById("importCsvLabel");if(i){i.hidden=true;i.style.display="none";}})();</script>
     </header>
+    <div id="modeBadge" style="width:100%;text-align:center;font-size:13px;font-weight:800;color:var(--neon-gold);margin:-4px 0 4px;letter-spacing:1px;">挑戰塔</div>
+    <div id="unlockBadge" style="width:100%;text-align:center;font-size:12px;font-weight:700;color:var(--neon-green);margin:0 0 8px;letter-spacing:1px;">解鎖狀態載入中…</div>
+    <div id="towerProgress" style="width:100%;text-align:center;font-size:12px;font-weight:700;color:var(--neon-cyan);margin:-2px 0 10px;letter-spacing:1px;"></div>
 
     <div id="arenaDesc">標準 Xtreme 齒輪軌道反彈 + 中心輕微吸力</div>
 
@@ -859,7 +928,7 @@
           <input type="checkbox" id="playerAutoSpecial">
         </label>
 
-        <div class="card-actions">
+        <div class="card-actions edit-only">
           <button class="btn-cyber" onclick="openEdit(playerBeyKey)">編輯此陀螺</button>
           <button class="btn-cyber" onclick="openNewEditor()">＋ 新增陀螺</button>
         </div>
@@ -950,8 +1019,8 @@
         </label>
 
         <div class="card-actions">
-          <button class="btn-cyber" onclick="openEdit(enemyBeyKey)">編輯對手陀螺</button>
-          <button class="btn-cyber" onclick="randomizeEnemy()">隨機挑選對手</button>
+          <button class="btn-cyber edit-only" onclick="openEdit(enemyBeyKey)">編輯對手陀螺</button>
+          <button class="btn-cyber" onclick="randomizeEnemy()">隨機同層對手</button>
         </div>
       </aside>
     </div>
@@ -1033,6 +1102,16 @@
   </div>
 
   <!-- 必殺技全螢幕 Cut-in -->
+  
+  <!-- 陀螺高清原圖預覽 -->
+  <div id="hdPreviewOverlay" onclick="closeHdPreview(event)">
+    <div class="hd-preview-box" onclick="event.stopPropagation()">
+      <button type="button" class="hd-close" onclick="closeHdPreview()">&times;</button>
+      <img id="hdPreviewImg" src="" alt="陀螺高清圖">
+      <div id="hdPreviewName"></div>
+    </div>
+  </div>
+
   <div id="cutin">
     <div class="cutin-stripe">
       <div class="title" id="cutinTitle">必殺技</div>
@@ -1420,6 +1499,303 @@ const DEFAULT_BEYS = {
     const PLAYER_POS = { x: 165, y: 320 };
     const ENEMY_POS  = { x: 475, y: 320 };
 
+
+    // ========== 模式：挑戰塔（預設） / 編輯模式（密碼 4444）==========
+    const UNLOCK_STORAGE_KEY = "beyUnlocked_v1";
+    const UNLOCK_FLAG_KEY = "beyUnlockFilterOn_v1";
+    const TOWER_BEATEN_KEY = "beyTowerBeaten_v1";
+    const EDIT_PASSWORD = "4444";
+    let gameMode = "tower"; // "tower" | "edit"
+    let towerLevelMap = {}; // key -> 1..10
+    let towerLevels = {};   // level -> [keys]
+
+    function readUnlockList() {
+      try {
+        const raw = localStorage.getItem(UNLOCK_STORAGE_KEY);
+        if (!raw) return null;
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr.map(String) : [];
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function writeUnlockList(keys, enableFilter = true) {
+      const uniq = [...new Set((keys || []).map(String).filter(Boolean))];
+      localStorage.setItem(UNLOCK_STORAGE_KEY, JSON.stringify(uniq));
+      if (enableFilter) localStorage.setItem(UNLOCK_FLAG_KEY, "1");
+      return uniq;
+    }
+
+    function applyUrlUnlockParams() {
+      const params = new URLSearchParams(location.search);
+      if (params.has("unlock")) {
+        const add = params.get("unlock").split(/[,|;]+/).map(s => s.trim()).filter(Boolean);
+        const cur = readUnlockList() || [];
+        writeUnlockList([...cur, ...add], true);
+      }
+    }
+
+    function getUnlockedKeys() {
+      applyUrlUnlockParams();
+      if (gameMode === "edit") return Object.keys(BEY_DATA);
+      ensureStarterUnlock();
+      const list = readUnlockList();
+      if (list === null) return [];
+      return list.filter(k => BEY_DATA[k]);
+    }
+
+    function isBeyUnlocked(key) {
+      if (gameMode === "edit") return true;
+      const list = readUnlockList() || [];
+      return list.includes(key);
+    }
+
+    function getBeyPower(key) {
+      const s = BEY_DATA[key] && BEY_DATA[key].stats;
+      if (!s) return 0;
+      return (+s.attack || 0) + (+s.defense || 0) + (+s.stamina || 0) + (+s.speed || 0);
+    }
+
+    function displayBeyName(name) {
+      // 去掉括號型號，例如 (BL-EVE-077428-01)
+      return String(name || "")
+        .replace(/\s*\([^)]*\)/g, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+    }
+
+
+    let towerLevelRanges = {}; // lv -> {min, max}
+
+    function rebuildTowerLevels() {
+      towerLevelMap = {};
+      towerLevels = {};
+      towerLevelRanges = {};
+      for (let lv = 1; lv <= 10; lv++) {
+        towerLevels[lv] = [];
+        towerLevelRanges[lv] = { min: 0, max: 0 };
+      }
+      const entries = Object.keys(BEY_DATA).map(k => ({ key: k, power: getBeyPower(k) }));
+      entries.sort((a, b) => a.power - b.power || a.key.localeCompare(b.key));
+      const n = entries.length;
+      if (!n) return;
+      for (let i = 0; i < n; i++) {
+        let lv = Math.floor((i * 10) / n) + 1;
+        if (lv > 10) lv = 10;
+        towerLevelMap[entries[i].key] = lv;
+        towerLevels[lv].push(entries[i].key);
+      }
+      for (let lv = 1; lv <= 10; lv++) {
+        const keys = towerLevels[lv];
+        if (!keys.length) continue;
+        let mn = Infinity, mx = -Infinity;
+        for (const k of keys) {
+          const p = getBeyPower(k);
+          if (p < mn) mn = p;
+          if (p > mx) mx = p;
+        }
+        towerLevelRanges[lv] = { min: mn, max: mx };
+      }
+    }
+
+    function levelRangeLabel(lv) {
+      const r = towerLevelRanges[lv];
+      if (!r || !(towerLevels[lv] || []).length) return "—";
+      if (r.min === r.max) return String(r.min);
+      return r.min + "–" + r.max;
+    }
+
+    /** 挑戰塔首次進入：若無解鎖清單，預設送一隻 Level 1 最弱陀螺 */
+    function ensureStarterUnlock() {
+      if (gameMode === "edit") return;
+      rebuildTowerLevels();
+      const list = readUnlockList();
+      if (list !== null && list.filter(k => BEY_DATA[k]).length > 0) return;
+      const lv1 = towerLevels[1] || [];
+      if (!lv1.length) {
+        // 後備：全庫最弱一隻
+        const all = Object.keys(BEY_DATA);
+        if (!all.length) return;
+        all.sort((a, b) => getBeyPower(a) - getBeyPower(b));
+        writeUnlockList([all[0]], true);
+        return;
+      }
+      const sorted = [...lv1].sort((a, b) => getBeyPower(a) - getBeyPower(b));
+      writeUnlockList([sorted[0]], true);
+    }
+
+    function resetTowerProgress() {
+      if (!requireEditMode("重置挑戰塔進度")) return;
+      if (!confirm("確定清空挑戰塔全部擊破進度？玩家解鎖陀螺不會被刪除。")) return;
+      localStorage.removeItem(TOWER_BEATEN_KEY);
+      alert("挑戰塔進度已重置，從 Level 1 重新開始。");
+      refreshSelects();
+      resetGame();
+    }
+
+
+    function readTowerBeaten() {
+      try {
+        const raw = localStorage.getItem(TOWER_BEATEN_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return new Set(Array.isArray(arr) ? arr.map(String) : []);
+      } catch (e) {
+        return new Set();
+      }
+    }
+
+    function writeTowerBeaten(set) {
+      localStorage.setItem(TOWER_BEATEN_KEY, JSON.stringify([...set]));
+    }
+
+    function isLevelCleared(lv, beaten) {
+      const keys = towerLevels[lv] || [];
+      if (!keys.length) return true;
+      return keys.every(k => beaten.has(k));
+    }
+
+    function getMaxChallengeLevel() {
+      const beaten = readTowerBeaten();
+      let maxLv = 1;
+      for (let lv = 1; lv <= 10; lv++) {
+        if (isLevelCleared(lv, beaten)) maxLv = Math.min(10, lv + 1);
+        else break;
+      }
+      return maxLv;
+    }
+
+    function getChallengeableEnemyKeys() {
+      if (gameMode === "edit") return Object.keys(BEY_DATA);
+      const maxLv = getMaxChallengeLevel();
+      const keys = [];
+      for (let lv = 1; lv <= maxLv; lv++) {
+        for (const k of (towerLevels[lv] || [])) keys.push(k);
+      }
+      return keys;
+    }
+
+    function recordTowerVictory(enemyKey) {
+      if (gameMode !== "tower" || !enemyKey) return;
+      const beaten = readTowerBeaten();
+      const already = beaten.has(enemyKey);
+      if (!already) {
+        beaten.add(enemyKey);
+        writeTowerBeaten(beaten);
+      }
+      const lv = towerLevelMap[enemyKey] || 1;
+      if (!already && isLevelCleared(lv, beaten)) {
+        const next = getMaxChallengeLevel();
+        setTimeout(() => {
+          alert(lv >= 10
+            ? "恭喜！你已征服挑戰塔全部 Level！"
+            : ("Level " + lv + " 全數擊破！已解鎖挑戰 Level " + next));
+        }, 450);
+      }
+      // 戰勝後立即更新 CPU 下拉（紅色刪除線、解鎖更高層）
+      const prevEnemy = enemyBeyKey;
+      refreshSelects();
+      // 若當前對手仍可選則保持選中
+      if (prevEnemy && BEY_DATA[prevEnemy]) {
+        const still = getChallengeableEnemyKeys();
+        if (still.includes(prevEnemy)) {
+          enemyBeyKey = prevEnemy;
+          const eSel = document.getElementById("enemySelect");
+          if (eSel) eSel.value = prevEnemy;
+          updateAttr();
+        }
+      }
+      updateModeBadges();
+    }
+
+    function isEditMode() { return gameMode === "edit"; }
+
+    function applyModeUI() {
+      const edit = isEditMode();
+      document.body.classList.toggle("edit-mode-on", edit);
+      document.querySelectorAll(".edit-only").forEach(el => {
+        if (edit) {
+          el.hidden = false;
+          el.style.removeProperty("display");
+        } else {
+          el.hidden = true;
+          el.style.setProperty("display", "none", "important");
+        }
+      });
+      // 明確處理匯出 CSV（避免殘留顯示）
+      const exp = document.getElementById("exportCsvBtn");
+      if (exp) {
+        exp.hidden = !edit;
+        exp.style.setProperty("display", edit ? "inline-flex" : "none", "important");
+      }
+      const imp = document.getElementById("importCsvLabel");
+      if (imp) {
+        imp.hidden = !edit;
+        imp.style.setProperty("display", edit ? "inline-flex" : "none", "important");
+      }
+      const btn = document.getElementById("editModeBtn");
+      if (btn) btn.textContent = edit ? "返回挑戰塔" : "編輯模式";
+      updateModeBadges();
+    }
+
+    function toggleEditMode() {
+      if (gameMode === "edit") {
+        gameMode = "tower";
+        applyModeUI();
+        refreshSelects();
+        resetGame();
+        return;
+      }
+      const pw = prompt("請輸入編輯模式密碼：");
+      if (pw === null) return;
+      if (String(pw) !== EDIT_PASSWORD) {
+        alert("密碼錯誤");
+        return;
+      }
+      gameMode = "edit";
+      applyModeUI();
+      refreshSelects();
+      resetGame();
+    }
+
+    function updateModeBadges() {
+      const modeEl = document.getElementById("modeBadge");
+      const unlockEl = document.getElementById("unlockBadge");
+      const progEl = document.getElementById("towerProgress");
+      if (modeEl) {
+        modeEl.textContent = gameMode === "edit" ? "編輯模式" : "挑戰塔";
+        modeEl.style.color = gameMode === "edit" ? "#fbbf24" : "var(--neon-gold)";
+      }
+      if (gameMode === "edit") {
+        if (unlockEl) {
+          unlockEl.textContent = "全部陀螺可用（" + Object.keys(BEY_DATA).length + " 隻）";
+          unlockEl.style.color = "var(--neon-gold)";
+        }
+        if (progEl) progEl.textContent = "可編輯／新增／匯入匯出 CSV";
+        return;
+      }
+      const unlocked = getUnlockedKeys();
+      if (unlockEl) {
+        unlockEl.textContent = "玩家已解鎖 " + unlocked.length + " 隻陀螺";
+        unlockEl.style.color = "var(--neon-green)";
+      }
+      const beaten = readTowerBeaten();
+      const maxLv = getMaxChallengeLevel();
+      let cleared = 0;
+      for (let lv = 1; lv <= 10; lv++) if (isLevelCleared(lv, beaten)) cleared++;
+      if (progEl) {
+        const rr = levelRangeLabel(maxLv);
+        progEl.textContent = "可打至 Level " + maxLv + "（能力 " + rr + "）｜ 已擊破 " + beaten.size + " 隻 ｜ 已清層 " + cleared + "/10";
+      }
+    }
+
+    function requireEditMode(actionName) {
+      if (isEditMode()) return true;
+      alert("「" + actionName + "」只可在編輯模式使用（密碼 4444）");
+      return false;
+    }
+
+
     let playerBeyKey = "bleve07742801";
     let enemyBeyKey = "bleve07742802";
     let player, enemy;
@@ -1572,6 +1948,7 @@ const DEFAULT_BEYS = {
 
     // ========== CSV 匯出 / 匯入 ==========
     function resetBeyDefaults() {
+      if (!requireEditMode("還原預設")) return;
       if (!confirm("確定清除所有自訂陀螺，還原成程式內建清單？")) return;
       try { localStorage.removeItem("beyCustom_v4"); } catch (e) {}
       // 重新載入頁面以還原 DEFAULT_BEYS
@@ -1579,6 +1956,7 @@ const DEFAULT_BEYS = {
     }
 
     function exportBeyCSV() {
+      if (!requireEditMode("匯出 CSV")) return;
       try {
         const rows = [["key","name","type","spinDir","attack","defense","stamina","speed","specialName","specialType","src"]];
         for (const key in BEY_DATA) {
@@ -1705,6 +2083,7 @@ const DEFAULT_BEYS = {
     }
 
     function importBeyCSV(file) {
+      if (!requireEditMode("匯入 CSV")) return;
       const reader = new FileReader();
       reader.onload = (ev) => {
         try {
@@ -1920,6 +2299,7 @@ const DEFAULT_BEYS = {
     })();
 
     function openNewEditor() {
+      if (!requireEditMode("新增陀螺")) return;
       playUiClick();
       editingKey = null;
       document.getElementById("editorTitle").textContent = "＋ 新增自訂陀螺";
@@ -1940,6 +2320,7 @@ const DEFAULT_BEYS = {
     }
 
     function openEdit(key) {
+      if (!requireEditMode("編輯陀螺")) return;
       playUiClick();
       editingKey = key;
       const d = BEY_DATA[key];
@@ -2022,33 +2403,88 @@ const DEFAULT_BEYS = {
 
     function randomizeEnemy() {
       playUiClick();
-      const keys = Object.keys(BEY_DATA);
-      if (keys.length > 1) {
-        const candidates = keys.filter(k => k !== enemyBeyKey);
-        enemyBeyKey = candidates[Math.floor(Math.random() * candidates.length)];
+      const beaten = readTowerBeaten();
+      // 只從可挑戰層中抽「尚未戰勝」的對手
+      let pool = getChallengeableEnemyKeys().filter(k => k !== playerBeyKey && !beaten.has(k));
+      if (!pool.length) {
+        // 本層／已解鎖層全部打完 → 仍允許從可挑戰池隨機（含已戰勝）
+        pool = getChallengeableEnemyKeys().filter(k => k !== playerBeyKey);
       }
+      if (!pool.length) pool = getChallengeableEnemyKeys();
+      if (!pool.length) {
+        alert("目前沒有可挑戰的對手");
+        return;
+      }
+      enemyBeyKey = pool[Math.floor(Math.random() * pool.length)];
       refreshSelects();
       resetGame();
     }
 
     function refreshSelects() {
+      rebuildTowerLevels();
       const pSel = document.getElementById("playerSelect");
       const eSel = document.getElementById("enemySelect");
       pSel.innerHTML = "";
       eSel.innerHTML = "";
-      for (const key in BEY_DATA) {
-        const d = BEY_DATA[key];
-        const label = `${d.name} [${TYPE_NAME[d.type]}]`;
-        const opt1 = document.createElement("option");
-        opt1.value = key; opt1.textContent = label;
-        if (key === playerBeyKey) opt1.selected = true;
-        pSel.appendChild(opt1);
 
-        const opt2 = document.createElement("option");
-        opt2.value = key; opt2.textContent = label;
-        if (key === enemyBeyKey) opt2.selected = true;
-        eSel.appendChild(opt2);
+      const playerKeys = getUnlockedKeys();
+      const enemyKeys = getChallengeableEnemyKeys();
+      const beaten = readTowerBeaten();
+
+      if (playerKeys.length === 0) {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = gameMode === "tower"
+          ? "尚未解鎖陀螺（請先到學習 App 答題抽取）"
+          : "沒有陀螺資料";
+        pSel.appendChild(opt);
+        playerBeyKey = "";
+      } else {
+        if (!playerKeys.includes(playerBeyKey)) playerBeyKey = playerKeys[0];
+        for (const key of playerKeys) {
+          const d = BEY_DATA[key];
+          const opt = document.createElement("option");
+          opt.value = key;
+          opt.textContent = `${d.name} [${TYPE_NAME[d.type] || d.type}]`;
+          if (key === playerBeyKey) opt.selected = true;
+          pSel.appendChild(opt);
+        }
       }
+
+      if (enemyKeys.length === 0) {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "暫無可挑戰對手";
+        eSel.appendChild(opt);
+        enemyBeyKey = "";
+      } else {
+        if (!enemyKeys.includes(enemyBeyKey)) enemyBeyKey = enemyKeys[0];
+        const sorted = [...enemyKeys].sort((a, b) => {
+          const la = towerLevelMap[a] || 99, lb = towerLevelMap[b] || 99;
+          if (la !== lb) return la - lb;
+          return getBeyPower(a) - getBeyPower(b);
+        });
+        for (const key of sorted) {
+          const d = BEY_DATA[key];
+          const lv = towerLevelMap[key] || 1;
+          const won = beaten.has(key);
+          const opt = document.createElement("option");
+          opt.value = key;
+          // 不顯示能力區間、不顯示括號型號
+          opt.textContent = (won ? "✓ " : "") + "Lv." + lv + " " + displayBeyName(d.name);
+          if (won) {
+            opt.style.color = "#ff2a55";
+            opt.style.fontWeight = "700";
+            opt.style.textDecoration = "line-through";
+            opt.setAttribute("data-beaten", "1");
+          }
+          if (key === enemyBeyKey) opt.selected = true;
+          eSel.appendChild(opt);
+        }
+      }
+
+      updateModeBadges();
+      applyModeUI();
       updateAttr();
     }
 
@@ -2092,23 +2528,72 @@ const DEFAULT_BEYS = {
       `;
     }
 
-    function renderAvatarHtml(data) {
+
+    function showHdPreview(beyKey) {
+      const data = BEY_DATA[beyKey];
+      if (!data) return;
       const src = resolveBeySrc(data);
+      if (!src) {
+        alert("此陀螺尚未設定圖片");
+        return;
+      }
+      const img = document.getElementById("hdPreviewImg");
+      const nameEl = document.getElementById("hdPreviewName");
+      const overlay = document.getElementById("hdPreviewOverlay");
+      if (!img || !overlay) return;
+      img.src = src;
+      img.alt = data.name || "";
+      if (nameEl) nameEl.textContent = displayBeyName(data.name || "");
+      overlay.classList.add("open");
+    }
+
+    function closeHdPreview(ev) {
+      if (ev && ev.target && ev.target.id && ev.target.id !== "hdPreviewOverlay" && !ev.target.classList.contains("hd-close")) {
+        return;
+      }
+      const overlay = document.getElementById("hdPreviewOverlay");
+      if (overlay) overlay.classList.remove("open");
+    }
+
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "Escape") closeHdPreview();
+    });
+
+    function renderAvatarHtml(data, beyKey) {
+      const src = resolveBeySrc(data);
+      const keyAttr = beyKey ? ` data-bey-key="${beyKey}"` : "";
+      const click = beyKey ? ` onclick="showHdPreview('${beyKey}')"` : "";
       if (src) {
-        const short = (data.name || "???") .substring(0, 3);
-        return `<img src="${src}" alt="${data.name}" onerror="this.outerHTML='<span>${short}</span>';">`;
+        const short = (data.name || "???").substring(0, 3);
+        return `<img src="${src}" alt="${data.name}"${keyAttr}${click} title="點擊查看高清原圖" onerror="this.outerHTML='<span>${short}</span>';">`;
       }
       const bg = data.spinDir === 1 ? "#ff2a55" : "#00d4ff";
-      return `<span style="color:${bg}">${(data.name || "???").substring(0, 3)}</span>`;
+      return `<span style="color:${bg}"${keyAttr}${click}>${(data.name || "???").substring(0, 3)}</span>`;
     }
 
     function updateAttr() {
+      if (!playerBeyKey || !BEY_DATA[playerBeyKey]) {
+        // 無可用陀螺時清空展示
+        const emptyStats = { attack: 0, defense: 0, stamina: 0, speed: 0 };
+        const pa = document.getElementById("playerAvatar");
+        if (pa) pa.innerHTML = "<span>🔒</span>";
+        const pt = document.getElementById("playerTypeTag");
+        if (pt) pt.innerHTML = "";
+        const ps = document.getElementById("playerSpecialTag");
+        if (ps) ps.textContent = "尚未解鎖";
+        const pb = document.getElementById("playerStatBars");
+        if (pb) pb.innerHTML = renderStatBarsHtml(emptyStats);
+        const pn = document.getElementById("hudPlayerName");
+        if (pn) pn.textContent = "—";
+      }
       const p = BEY_DATA[playerBeyKey];
       const e = BEY_DATA[enemyBeyKey];
+      if (!p || !e) return;
 
       document.getElementById("playerSpinBadge").textContent = p.spinDir === 1 ? "右旋 RIGHT" : "左旋 LEFT";
       document.getElementById("playerSpinBadge").className = "spin-badge " + (p.spinDir === 1 ? "spin-right" : "spin-left");
-      document.getElementById("playerAvatar").innerHTML = renderAvatarHtml(p);
+      document.getElementById("playerAvatar").innerHTML = renderAvatarHtml(p, playerBeyKey);
+      document.getElementById("playerAvatar").onclick = () => showHdPreview(playerBeyKey);
       document.getElementById("playerTypeTag").innerHTML = `<span class="type-tag ${TYPE_CLASS[p.type]}">${TYPE_NAME[p.type]}</span>`;
       document.getElementById("playerSpecialTag").textContent = `必殺：${p.special.name}`;
       document.getElementById("playerStatBars").innerHTML = renderStatBarsHtml(p.stats);
@@ -2116,7 +2601,8 @@ const DEFAULT_BEYS = {
 
       document.getElementById("enemySpinBadge").textContent = e.spinDir === 1 ? "右旋 RIGHT" : "左旋 LEFT";
       document.getElementById("enemySpinBadge").className = "spin-badge " + (e.spinDir === 1 ? "spin-right" : "spin-left");
-      document.getElementById("enemyAvatar").innerHTML = renderAvatarHtml(e);
+      document.getElementById("enemyAvatar").innerHTML = renderAvatarHtml(e, enemyBeyKey);
+      document.getElementById("enemyAvatar").onclick = () => showHdPreview(enemyBeyKey);
       document.getElementById("enemyTypeTag").innerHTML = `<span class="type-tag ${TYPE_CLASS[e.type]}">${TYPE_NAME[e.type]}</span>`;
       document.getElementById("enemySpecialTag").textContent = `必殺：${e.special.name}`;
       document.getElementById("enemyStatBars").innerHTML = renderStatBarsHtml(e.stats);
@@ -2463,6 +2949,11 @@ const DEFAULT_BEYS = {
     }
 
     function createBeys() {
+      if (!playerBeyKey || !BEY_DATA[playerBeyKey]) {
+        player = null;
+        enemy = enemyBeyKey && BEY_DATA[enemyBeyKey] ? new Bey(ENEMY_POS.x, ENEMY_POS.y, false, enemyBeyKey) : null;
+        return;
+      }
       player = new Bey(PLAYER_POS.x, PLAYER_POS.y, true, playerBeyKey);
       enemy  = new Bey(ENEMY_POS.x, ENEMY_POS.y, false, enemyBeyKey);
       player.autoSpecial = document.getElementById("playerAutoSpecial").checked;
@@ -2604,6 +3095,7 @@ const DEFAULT_BEYS = {
             resDetail.textContent = `${BEY_DATA[enemyBeyKey].name} 獲勝（剩餘轉速 ${enemy.spin.toFixed(0)}%）`;
           } else {
             winner = "VICTORY!";
+            recordTowerVictory(enemyBeyKey);
             resTitle.style.color = "#00ff9d";
             resDetail.textContent = `${BEY_DATA[playerBeyKey].name} 獲勝（剩餘轉速 ${player.spin.toFixed(0)}%）`;
           }
@@ -2737,7 +3229,7 @@ const DEFAULT_BEYS = {
     function startDrag(e) {
       e.preventDefault();
       initAudio();
-      if (state !== "aiming") return;
+      if (state !== "aiming" || !player) return;
       const pos = getCanvasPos(e);
       dragStart = pos;
       dragCurrent = { ...pos };
