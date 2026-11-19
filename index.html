@@ -2584,11 +2584,17 @@ const DEFAULT_BEYS = {
         playerBeyKey = "";
       } else {
         if (!playerKeys.includes(playerBeyKey)) playerBeyKey = playerKeys[0];
-        for (const key of playerKeys) {
+        const sortedPlayer = [...playerKeys].sort((a, b) => {
+          const la = towerLevelMap[a] || 99, lb = towerLevelMap[b] || 99;
+          if (la !== lb) return la - lb;
+          return getBeyPower(a) - getBeyPower(b);
+        });
+        for (const key of sortedPlayer) {
           const d = BEY_DATA[key];
+          const lv = towerLevelMap[key] || 1;
           const opt = document.createElement("option");
           opt.value = key;
-          opt.textContent = `${d.name} [${TYPE_NAME[d.type] || d.type}]`;
+          opt.textContent = "Lv." + lv + " " + displayBeyName(d.name);
           if (key === playerBeyKey) opt.selected = true;
           pSel.appendChild(opt);
         }
