@@ -1643,6 +1643,32 @@ const DEFAULT_BEYS = {
       return uniq;
     }
 
+
+    /** 學習 App 徽章 ID → 戰鬥 App key：BL-EVE-910879-01 → bleve91087901 */
+    function badgeIdToBattleKey(id) {
+      return String(id || "").replace(/-/g, "").toLowerCase();
+    }
+
+    /** 從小天才學習 App 的 bey_collection_v2 同步解鎖 */
+    function syncUnlocksFromLearningApp() {
+      try {
+        const raw = localStorage.getItem("bey_collection_v2");
+        if (!raw) return;
+        const list = JSON.parse(raw);
+        if (!Array.isArray(list) || !list.length) return;
+        const fromLearn = [];
+        for (const o of list) {
+          const k = badgeIdToBattleKey(o && o.id);
+          if (k && BEY_DATA[k]) fromLearn.push(k);
+        }
+        if (!fromLearn.length) return;
+        const cur = readUnlockList() || [];
+        writeUnlockList([...cur, ...fromLearn], true);
+      } catch (e) {
+        console.warn("syncUnlocksFromLearningApp", e);
+      }
+    }
+
     function applyUrlUnlockParams() {
       const params = new URLSearchParams(location.search);
       if (params.has("unlock")) {
@@ -1655,6 +1681,7 @@ const DEFAULT_BEYS = {
     function getUnlockedKeys() {
       applyUrlUnlockParams();
       if (gameMode === "edit") return Object.keys(BEY_DATA);
+      syncUnlocksFromLearningApp();
       ensureStarterUnlock();
       const list = readUnlockList();
       if (list === null) return [];
