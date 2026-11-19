@@ -1131,7 +1131,9 @@
       "take-1-take-2.mp3",
       "take-1-take-3.mp3",
       "take-1-take-4.mp3",
-      "take-1-take-5.mp3"
+      "take-1-take-5.mp3",
+      "take-1-take-6.mp3",
+      "take-1-take-7.mp3"
     ];
     const battlePlaylist = BATTLE_BGM_TRACKS.map(src => {
       const a = new Audio(src);
@@ -1197,6 +1199,70 @@
       const clone = targetSound.cloneNode();
       clone.volume = targetSound.volume;
       clone.play().catch(e => {});
+    }
+
+
+    // 勝負音效
+    const sndYouWin = new Audio("you-win.mp3");
+    const sndYouLose = new Audio("you-lose.mp3");
+    const sndSfLoss = new Audio("sf-loss.mp3");
+    sndYouWin.volume = 0.9;
+    sndYouLose.volume = 0.9;
+    sndSfLoss.volume = 0.9;
+
+    function playWinLose(isWin) {
+      try {
+        if (isWin) {
+          sndYouWin.pause();
+          sndYouWin.currentTime = 0;
+          sndYouWin.play().catch(() => {});
+          return;
+        }
+        // 戰敗：先播 sf-loss，0.5 秒後再播 you-lose
+        try {
+          sndSfLoss.pause();
+          sndSfLoss.currentTime = 0;
+          sndSfLoss.play().catch(() => {});
+        } catch (e) {}
+        setTimeout(() => {
+          try {
+            sndYouLose.pause();
+            sndYouLose.currentTime = 0;
+            sndYouLose.play().catch(() => {});
+          } catch (e) {}
+        }, 500);
+      } catch (e) {}
+    }
+
+    // 倒數人聲：tenka / girl / boy / bird，每場戰鬥隨機一把
+    const VOICE_PACKS = ["tenka", "girl", "boy", "bird"];
+    const voiceAudios = {};
+    VOICE_PACKS.forEach(pack => {
+      voiceAudios[pack] = {
+        "3": new Audio("voice-" + pack + "-3.mp3"),
+        "2": new Audio("voice-" + pack + "-2.mp3"),
+        "1": new Audio("voice-" + pack + "-1.mp3"),
+        "go": new Audio("voice-" + pack + "-go.mp3"),
+        "shoot": new Audio("voice-" + pack + "-shoot.mp3")
+      };
+      Object.values(voiceAudios[pack]).forEach(a => { a.volume = 1; a.preload = "auto"; });
+    });
+    let currentVoicePack = "bird";
+
+    function pickVoicePack() {
+      currentVoicePack = VOICE_PACKS[Math.floor(Math.random() * VOICE_PACKS.length)];
+      return currentVoicePack;
+    }
+
+    function playVoiceCue(cue) {
+      // cue: "3"|"2"|"1"|"go"|"shoot"
+      try {
+        const pack = voiceAudios[currentVoicePack];
+        if (!pack || !pack[cue]) return;
+        const a = pack[cue].cloneNode();
+        a.volume = 1;
+        a.play().catch(() => {});
+      } catch (e) {}
     }
 
     function playLobbyMusic() {
@@ -3035,20 +3101,35 @@ const DEFAULT_BEYS = {
       const textEl = document.getElementById("countdownText");
       overlay.classList.add("active");
 
-      const steps = ["3", "2", "1", "GO SHOOT!"];
+      // 每場隨機一把人聲：3→2→1→GO→SHOOT
+      pickVoicePack();
+      const steps = [
+        { label: "3", cue: "3", color: "#ffffff" },
+        { label: "2", cue: "2", color: "#ffffff" },
+        { label: "1", cue: "1", color: "#ffffff" },
+        { label: "GO", cue: "go", color: "#fbbf24" },
+        { label: "SHOOT!", cue: "shoot", color: "#00ff9d" }
+      ];
       let idx = 0;
 
       function showStep() {
-        const label = steps[idx];
-        const isGo = idx === 3;
-        textEl.textContent = label;
-        textEl.style.color = isGo ? "#00ff9d" : "#ffffff";
+        if (idx >= steps.length) {
+          clearInterval(countdownTimer);
+          return;
+        }
+        const step = steps[idx];
+        const isShoot = step.cue === "shoot";
+        textEl.textContent = step.label;
+        textEl.style.color = step.color;
         textEl.classList.remove("count-pop");
         void textEl.offsetWidth;
         textEl.classList.add("count-pop");
-        playCountdownBeep(isGo);
+        playVoiceCue(step.cue);
+        // 保留輕微電子音作輔助（可與人聲疊加）
+        if (step.cue === "go" || step.cue === "shoot") playCountdownBeep(true);
+        else playCountdownBeep(false);
 
-        if (isGo) {
+        if (isShoot) {
           player.launch(pendingLaunch.power, pendingLaunch.angle);
           const ex = player.x - enemy.x, ey = player.y - enemy.y;
           enemy.launch(98 + Math.random() * 48, Math.atan2(ey, ex) + (Math.random() - 0.5) * 0.45);
@@ -3063,7 +3144,7 @@ const DEFAULT_BEYS = {
       }
 
       showStep();
-      countdownTimer = setInterval(showStep, 520);
+      countdownTimer = setInterval(showStep, 580);
     }
 
     function triggerPlayerSpecial() {
@@ -3143,11 +3224,13 @@ const DEFAULT_BEYS = {
             winner = "CPU WINS";
             resTitle.style.color = "#ff2a55";
             resDetail.textContent = `${BEY_DATA[enemyBeyKey].name} 獲勝（剩餘轉速 ${enemy.spin.toFixed(0)}%）`;
+            playWinLose(false);
           } else {
             winner = "VICTORY!";
             recordTowerVictory(enemyBeyKey);
             resTitle.style.color = "#00ff9d";
             resDetail.textContent = `${BEY_DATA[playerBeyKey].name} 獲勝（剩餘轉速 ${player.spin.toFixed(0)}%）`;
+            playWinLose(true);
           }
           resTitle.textContent = winner;
           resOverlay.classList.add("active");
